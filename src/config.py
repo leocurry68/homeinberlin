@@ -4,6 +4,7 @@ import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 BERLIN_TZ = ZoneInfo("Europe/Berlin")
@@ -16,6 +17,19 @@ def _bool_env(name: str, default: bool = False) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def normalize_ntfy_topic(value: str | None) -> str | None:
+    if not value:
+        return None
+    topic = value.strip()
+    if not topic:
+        return None
+    if topic.startswith(("http://", "https://")):
+        parsed = urlparse(topic)
+        parts = [part for part in parsed.path.split("/") if part]
+        return parts[0] if parts else None
+    return topic.strip("/")
 
 
 @dataclass(slots=True)
@@ -36,7 +50,7 @@ class Settings:
 
 
 def load_settings(data_dir: Path | None = None) -> Settings:
-    topic = os.getenv("NTFY_TOPIC") or None
+    topic = normalize_ntfy_topic(os.getenv("NTFY_TOPIC"))
     dry_run = _bool_env("DRY_RUN", False) or topic is None
     return Settings(
         ntfy_topic=topic,
@@ -65,4 +79,3 @@ def configure_logging(level: str) -> None:
     root.handlers.clear()
     root.addHandler(handler)
     root.setLevel(level)
-
