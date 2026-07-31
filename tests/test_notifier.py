@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 from src.config import Settings
 from src.models import Listing
-from src.notifier import NtfyNotifier
+from src.notifier import NtfyNotifier, encode_header_value
 
 
 def settings(tmp_path, topic=None, dry_run=False) -> Settings:
@@ -31,3 +31,8 @@ def test_ntfy_failure_returns_false(tmp_path, monkeypatch) -> None:
     notifier = NtfyNotifier(settings(tmp_path, topic="secret-topic"), session=session)
     assert not notifier.send_listing(Listing(name="Couple Room", detail_url="https://example.com"))
 
+
+def test_non_ascii_ntfy_title_is_encoded() -> None:
+    encoded = encode_header_value("Home in Berlin 新双人房")
+    encoded.encode("latin-1")
+    assert encoded.startswith("=?utf-8?")

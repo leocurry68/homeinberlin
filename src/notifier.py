@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime
+from email.header import Header
 
 import requests
 
@@ -60,7 +61,7 @@ Wedding 匹配原因：
             print(message)
             return True
         headers = {
-            "Title": "Home in Berlin 新双人房",
+            "Title": encode_header_value("Home in Berlin 新双人房"),
             "Priority": "high",
             "Tags": "house,bell",
             "Click": listing.detail_url,
@@ -80,7 +81,7 @@ Wedding 匹配原因：
         if self.settings.dry_run or not self.settings.ntfy_url:
             LOGGER.error("Monitor error: %s - %s", error_type, message)
             return False
-        return self._post(body, {"Title": "Home in Berlin 监控异常", "Priority": "high", "Tags": "warning"})
+        return self._post(body, {"Title": encode_header_value("Home in Berlin 监控异常"), "Priority": "high", "Tags": "warning"})
 
     def _post(self, body: str, headers: dict[str, str]) -> bool:
         assert self.settings.ntfy_url is not None
@@ -94,3 +95,11 @@ Wedding 匹配原因：
                 LOGGER.warning("ntfy request failed: %s", exc)
             time.sleep(2**attempt)
         return False
+
+
+def encode_header_value(value: str) -> str:
+    try:
+        value.encode("latin-1")
+        return value
+    except UnicodeEncodeError:
+        return Header(value, "utf-8").encode()
